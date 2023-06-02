@@ -238,42 +238,6 @@ void main(void) {
         printk("Failed to write to I2C device address %x at Reg. %x \n",dev_i2c.addr,config);
     }
 
-    // /* Set interrupt HW - which pin and event generate interrupt */
-    // ret = gpio_pin_interrupt_configure_dt(&but0_dev, GPIO_INT_EDGE_TO_ACTIVE);
-    // if (ret != 0) {
-	//     printk("Error %d: failed to configure interrupt on BUT0 pin \n\r", ret);
-	//     return;
-    // }
-
-    // /* Set interrupt HW - which pin and event generate interrupt */
-    // ret = gpio_pin_interrupt_configure_dt(&but1_dev, GPIO_INT_EDGE_TO_ACTIVE);
-    // if (ret != 0) {
-	//     printk("Error %d: failed to configure interrupt on BUT1 pin \n\r", ret);
-	//     return;
-    // }
-
-    // /* Set interrupt HW - which pin and event generate interrupt */
-    // ret = gpio_pin_interrupt_configure_dt(&but2_dev, GPIO_INT_EDGE_TO_ACTIVE);
-    // if (ret != 0) {
-	//     printk("Error %d: failed to configure interrupt on BUT2 pin \n\r", ret);
-	//     return;
-    // }
-
-    // /* Set interrupt HW - which pin and event generate interrupt */
-    // ret = gpio_pin_interrupt_configure_dt(&but3_dev, GPIO_INT_EDGE_TO_ACTIVE);
-    // if (ret != 0) {
-	//     printk("Error %d: failed to configure interrupt on BUT3 pin \n\r", ret);
-	//     return;
-    // }
-    
-    // /* Set callback */
-    // gpio_init_callback(&but_cb_data, butpress_cbfunction, BIT(but0_dev.pin)| BIT(but1_dev.pin)| BIT(but2_dev.pin) | BIT(but3_dev.pin));
-    
-    // gpio_add_callback(but0_dev.port, &but_cb_data);
-    // gpio_add_callback(but1_dev.port, &but_cb_data);
-    // gpio_add_callback(but2_dev.port, &but_cb_data);
-    // gpio_add_callback(but3_dev.port, &but_cb_data);
-
     timing_init();
     timing_start();
 
@@ -295,36 +259,12 @@ void main(void) {
 
 } 
 
-// void butpress_cbfunction(const struct device *dev, struct gpio_callback *cb, uint32_t pins) {
-    
-//     /* Test each button ...*/
-//     if(BIT(but0_dev.pin) & pins) {
-//         /* Update global var*/
-//         But1 = !But1;
-//     }
-
-//     if(BIT(but1_dev.pin) & pins) {
-//         /* Update global var*/        
-//         But2 = !But2;
-//     }
-
-//     if(BIT(but2_dev.pin) & pins) {
-//         /* Update global var*/        
-//         But3 = !But3;
-//     }
-
-//     if(BIT(but3_dev.pin) & pins) {
-//         /* Update global var*/        
-//         But4 = !But4;
-//     }
-
-// }
-
 /* Thread temperature code implementation */
 void thread_temperature_code(void *argA , void *argB, void *argC)
 {
     /* Local vars */
-    int64_t fin_time=0, release_time=0;     /* Timing variables to control task periodicity */    
+    int64_t fin_time=0, release_time=0;     /* Timing variables to control task periodicity */  
+	  
         
     /* Task init code */
     printk("Thread temperature init (periodic)\n");

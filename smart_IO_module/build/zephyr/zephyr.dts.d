@@ -11,4 +11,5 @@ empty_file.o: /home/rt/ncs/zephyr/misc/empty_file.c \
  /home/rt/ncs/zephyr/include/zephyr/dt-bindings/pinctrl/nrf-pinctrl.h \
  /home/rt/ncs/zephyr/include/zephyr/dt-bindings/pwm/pwm.h \
  /home/rt/ncs/zephyr/dts/arm/nordic/override.dtsi \
- /home/rt/ncs/zephyr/boards/arm/nrf52840dk_nrf52840/nrf52840dk_nrf52840-pinctrl.dtsi
+ /home/rt/ncs/zephyr/boards/arm/nrf52840dk_nrf52840/nrf52840dk_nrf52840-pinctrl.dtsi \
+ /home/rt/Desktop/Projeto4/assignment4/smart_IO_module/nrf52840dk_nrf52840.overlay

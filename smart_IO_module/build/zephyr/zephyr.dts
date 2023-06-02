@@ -109,6 +109,11 @@
 			pinctrl-0 = < &i2c0_default >;
 			pinctrl-1 = < &i2c0_sleep >;
 			pinctrl-names = "default", "sleep";
+			tempsensor: tempsensor@4d {
+				compatible = "i2c-device";
+				reg = < 0x4d >;
+				label = "tempsensor";
+			};
 		};
 		spi0: spi@40003000 {
 			compatible = "nordic,nrf-spi";
