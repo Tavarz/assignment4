@@ -41,12 +41,13 @@
 #define thread_temperature_prio 3
 #define thread_button_prio 3
 #define thread_led_prio 3
-#define thread_print_prio 3
+#define thread_print_prio 1
 
 /* Therad periodicity (in ms)*/
 #define thread_temperature_period 20
 #define thread_button_period 20
 #define thread_led_period 20
+#define thread_print_period 20
 
 /* I2C node identifier*/
 #define I2C_NODE DT_NODELABEL(tempsensor)
@@ -56,21 +57,26 @@
 K_THREAD_STACK_DEFINE(thread_temperature_stack, STACK_SIZE);
 K_THREAD_STACK_DEFINE(thread_button_stack, STACK_SIZE);
 K_THREAD_STACK_DEFINE(thread_led_stack, STACK_SIZE);
+K_THREAD_STACK_DEFINE(thread_print_stack, STACK_SIZE);
   
 /* Create variables for thread data */
 struct k_thread thread_temperature_data;
 struct k_thread thread_button_data;
 struct k_thread thread_led_data;
+struct k_thread thread_print_data;
 
 /* Create task IDs */
 k_tid_t thread_temperature_tid;
 k_tid_t thread_button_tid;
 k_tid_t thread_led_tid;
+k_tid_t thread_print_tid;
 
 /* Thread code prototypes */
 void thread_temperature_code(void *, void *, void *);
 void thread_button_code(void *, void *, void *);
 void thread_led_code(void *, void *, void *);
+void thread_print_code(void *, void *, void *);
+
 
 /* I2C struct*/
 static const struct i2c_dt_spec dev_i2c = I2C_DT_SPEC_GET(I2C_NODE);
@@ -99,10 +105,6 @@ const struct gpio_dt_spec but1_dev = GPIO_DT_SPEC_GET(BUT1_NID,gpios);
 const struct gpio_dt_spec but2_dev = GPIO_DT_SPEC_GET(BUT2_NID,gpios);
 const struct gpio_dt_spec but3_dev = GPIO_DT_SPEC_GET(BUT3_NID,gpios);
 
-/* Int related declarations */
-//static struct gpio_callback but_cb_data; /* Callback structure */
-
-/* Callback function and variables*/
 /* Variables to use when a button is pressed */
 volatile int But0 = 0;      
 volatile int But1 = 0;      
@@ -114,9 +116,13 @@ volatile int led1stat = 0; /* Led status variable. Updated by the callback funct
 volatile int led2stat = 0; /* Led status variable. Updated by the callback function */
 volatile int led3stat = 0; /* Led status variable. Updated by the callback function */
 
+int ret;
+
+/* Temperature */
+int8_t temp;
+
 /* Main function */
 void main(void) {
-    int ret;
 
     /* Check device status */  
 
@@ -254,6 +260,10 @@ void main(void) {
     thread_led_tid = k_thread_create(&thread_led_data, thread_led_stack,
         K_THREAD_STACK_SIZEOF(thread_led_stack), thread_led_code,
         NULL, NULL, NULL, thread_led_prio, 0, K_NO_WAIT);
+	
+	thread_print_tid = k_thread_create(&thread_print_data, thread_print_stack,
+        K_THREAD_STACK_SIZEOF(thread_print_stack), thread_print_code,
+        NULL, NULL, NULL, thread_print_prio, 0, K_NO_WAIT);
 
     return;
 
@@ -264,7 +274,7 @@ void thread_temperature_code(void *argA , void *argB, void *argC)
 {
     /* Local vars */
     int64_t fin_time=0, release_time=0;     /* Timing variables to control task periodicity */  
-	  
+
         
     /* Task init code */
     printk("Thread temperature init (periodic)\n");
@@ -273,8 +283,24 @@ void thread_temperature_code(void *argA , void *argB, void *argC)
     release_time = k_uptime_get() + thread_temperature_period;
 
     /* Thread loop */
-    while(1) {        
-       
+    while(1) {		
+		
+		ret = i2c_read_dt(&dev_i2c, &temp, sizeof(temp));
+		if(ret != 0){
+			printk("Failed to write/read I2C device address %x at Reg. %x \r\n", dev_i2c.addr,config);
+		}
+
+		if(temp >= 128){
+			temp = 128 - temp;
+		}
+
+		if(temp < 0){
+			printk("-%d \n", abs(temp));
+		}
+		else{
+			printk("%d \n", temp);
+		}
+
 
 
         /* Wait for next release instant */ 
@@ -372,7 +398,42 @@ void thread_led_code(void *argA , void *argB, void *argC)
         fin_time = k_uptime_get();
         if( fin_time < release_time) {
             k_msleep(release_time - fin_time);
-            release_time += thread_temperature_period;
+            release_time += thread_led_period;
+
+        }
+    }
+
+    /* Stop timing functions */
+    timing_stop();
+}
+
+/* Thread print code implementation */
+void thread_print_code(void *argA , void *argB, void *argC)
+{
+    /* Local vars */
+    int64_t fin_time=0, release_time=0;     /* Timing variables to control task periodicity */    
+        
+    /* Task init code */
+    printk("Thread led init (periodic)\n");
+
+    /* Compute next release instant */
+    release_time = k_uptime_get() + thread_print_period;
+
+    /* Thread loop */
+    while(1) {        
+       /* Print menu */
+	    printk("\033[2J");
+		printk("\033[H");
+       
+	    printk("#######     Menu     #######\n\n\r    Button state(1-ON  0-OFF):\n\r   Button 1 : %d   Button 2 : %d   Button 3 : %d   Button 4 : %d\n\n\r",But0,But1,But2,But3);
+	    printk("    Led state(1-ON  0-OFF):\n\r   Led 1 : %d   Led 2 : %d   Led 3 : %d   Led 4 : %d\n\n\r",led0stat,led1stat,led2stat,led3stat);
+		printk("    Temperature : %d C\n\n\r",temp);
+
+        /* Wait for next release instant */ 
+        fin_time = k_uptime_get();
+        if( fin_time < release_time) {
+            k_msleep(release_time - fin_time);
+            release_time += thread_print_period;
 
         }
     }
