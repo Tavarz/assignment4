@@ -135,7 +135,7 @@
  *   124 /soc/flash-controller@4001e000/flash@0/partitions/partition@da000
  *   125 /soc/flash-controller@4001e000/flash@0/partitions/partition@f8000
  *   126 /soc/i2c@40003000
- *   127 /soc/i2c@40003000/tempsensor@4d
+ *   127 /soc/i2c@40003000/tc74@4d
  *   128 /soc/qspi@40029000
  *   129 /soc/qspi@40029000/mx25r6435f@0
  *
@@ -12390,10 +12390,10 @@
 
 /* Node's index in its parent's list of children: */
 #define DT_N_S_soc_S_i2c_40003000_CHILD_IDX 9
-#define DT_N_S_soc_S_i2c_40003000_FOREACH_CHILD(fn) fn(DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d)
-#define DT_N_S_soc_S_i2c_40003000_FOREACH_CHILD_VARGS(fn, ...) fn(DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d, __VA_ARGS__)
-#define DT_N_S_soc_S_i2c_40003000_FOREACH_CHILD_STATUS_OKAY(fn) fn(DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d) 
-#define DT_N_S_soc_S_i2c_40003000_FOREACH_CHILD_STATUS_OKAY_VARGS(fn, ...) fn(DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d, __VA_ARGS__) 
+#define DT_N_S_soc_S_i2c_40003000_FOREACH_CHILD(fn) fn(DT_N_S_soc_S_i2c_40003000_S_tc74_4d)
+#define DT_N_S_soc_S_i2c_40003000_FOREACH_CHILD_VARGS(fn, ...) fn(DT_N_S_soc_S_i2c_40003000_S_tc74_4d, __VA_ARGS__)
+#define DT_N_S_soc_S_i2c_40003000_FOREACH_CHILD_STATUS_OKAY(fn) fn(DT_N_S_soc_S_i2c_40003000_S_tc74_4d) 
+#define DT_N_S_soc_S_i2c_40003000_FOREACH_CHILD_STATUS_OKAY_VARGS(fn, ...) fn(DT_N_S_soc_S_i2c_40003000_S_tc74_4d, __VA_ARGS__) 
 
 /* Node's dependency ordinal: */
 #define DT_N_S_soc_S_i2c_40003000_ORD 126
@@ -12407,7 +12407,7 @@
 
 /* Ordinals for what depends directly on this node: */
 #define DT_N_S_soc_S_i2c_40003000_SUPPORTS_ORDS \
-	127, /* /soc/i2c@40003000/tempsensor@4d */
+	127, /* /soc/i2c@40003000/tc74@4d */
 
 /* Existence and alternate IDs: */
 #define DT_N_S_soc_S_i2c_40003000_EXISTS 1
@@ -12535,97 +12535,85 @@
 #define DT_N_S_soc_S_i2c_40003000_P_pinctrl_names_EXISTS 1
 
 /*
- * Devicetree node: /soc/i2c@40003000/tempsensor@4d
+ * Devicetree node: /soc/i2c@40003000/tc74@4d
  *
- * Node identifier: DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d
+ * Node identifier: DT_N_S_soc_S_i2c_40003000_S_tc74_4d
  */
 
 /* Node's full path: */
-#define DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d_PATH "/soc/i2c@40003000/tempsensor@4d"
+#define DT_N_S_soc_S_i2c_40003000_S_tc74_4d_PATH "/soc/i2c@40003000/tc74@4d"
 
 /* Node's name with unit-address: */
-#define DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d_FULL_NAME "tempsensor@4d"
+#define DT_N_S_soc_S_i2c_40003000_S_tc74_4d_FULL_NAME "tc74@4d"
 
 /* Node parent (/soc/i2c@40003000) identifier: */
-#define DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d_PARENT DT_N_S_soc_S_i2c_40003000
+#define DT_N_S_soc_S_i2c_40003000_S_tc74_4d_PARENT DT_N_S_soc_S_i2c_40003000
 
 /* Node's index in its parent's list of children: */
-#define DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d_CHILD_IDX 0
-#define DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d_FOREACH_CHILD(fn) 
-#define DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d_FOREACH_CHILD_VARGS(fn, ...) 
-#define DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d_FOREACH_CHILD_STATUS_OKAY(fn) 
-#define DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d_FOREACH_CHILD_STATUS_OKAY_VARGS(fn, ...) 
+#define DT_N_S_soc_S_i2c_40003000_S_tc74_4d_CHILD_IDX 0
+#define DT_N_S_soc_S_i2c_40003000_S_tc74_4d_FOREACH_CHILD(fn) 
+#define DT_N_S_soc_S_i2c_40003000_S_tc74_4d_FOREACH_CHILD_VARGS(fn, ...) 
+#define DT_N_S_soc_S_i2c_40003000_S_tc74_4d_FOREACH_CHILD_STATUS_OKAY(fn) 
+#define DT_N_S_soc_S_i2c_40003000_S_tc74_4d_FOREACH_CHILD_STATUS_OKAY_VARGS(fn, ...) 
 
 /* Node's dependency ordinal: */
-#define DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d_ORD 127
+#define DT_N_S_soc_S_i2c_40003000_S_tc74_4d_ORD 127
 
 /* Ordinals for what this node depends on directly: */
-#define DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d_REQUIRES_ORDS \
+#define DT_N_S_soc_S_i2c_40003000_S_tc74_4d_REQUIRES_ORDS \
 	126, /* /soc/i2c@40003000 */
 
 /* Ordinals for what depends directly on this node: */
-#define DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d_SUPPORTS_ORDS /* nothing */
+#define DT_N_S_soc_S_i2c_40003000_S_tc74_4d_SUPPORTS_ORDS /* nothing */
 
 /* Existence and alternate IDs: */
-#define DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d_EXISTS 1
-#define DT_N_INST_0_i2c_device    DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d
-#define DT_N_NODELABEL_tempsensor DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d
+#define DT_N_S_soc_S_i2c_40003000_S_tc74_4d_EXISTS 1
+#define DT_N_INST_0_i2c_device DT_N_S_soc_S_i2c_40003000_S_tc74_4d
+#define DT_N_NODELABEL_tc74    DT_N_S_soc_S_i2c_40003000_S_tc74_4d
 
 /* Bus info (controller: '/soc/i2c@40003000', type: 'i2c') */
-#define DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d_BUS_i2c 1
-#define DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d_BUS DT_N_S_soc_S_i2c_40003000
+#define DT_N_S_soc_S_i2c_40003000_S_tc74_4d_BUS_i2c 1
+#define DT_N_S_soc_S_i2c_40003000_S_tc74_4d_BUS DT_N_S_soc_S_i2c_40003000
 
 /* Macros for properties that are special in the specification: */
-#define DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d_REG_NUM 1
-#define DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d_REG_IDX_0_EXISTS 1
-#define DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d_REG_IDX_0_VAL_ADDRESS 77 /* 0x4d */
-#define DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d_RANGES_NUM 0
-#define DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d_FOREACH_RANGE(fn) 
-#define DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d_IRQ_NUM 0
-#define DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d_COMPAT_MATCHES_i2c_device 1
-#define DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d_STATUS_okay 1
+#define DT_N_S_soc_S_i2c_40003000_S_tc74_4d_REG_NUM 1
+#define DT_N_S_soc_S_i2c_40003000_S_tc74_4d_REG_IDX_0_EXISTS 1
+#define DT_N_S_soc_S_i2c_40003000_S_tc74_4d_REG_IDX_0_VAL_ADDRESS 77 /* 0x4d */
+#define DT_N_S_soc_S_i2c_40003000_S_tc74_4d_RANGES_NUM 0
+#define DT_N_S_soc_S_i2c_40003000_S_tc74_4d_FOREACH_RANGE(fn) 
+#define DT_N_S_soc_S_i2c_40003000_S_tc74_4d_IRQ_NUM 0
+#define DT_N_S_soc_S_i2c_40003000_S_tc74_4d_COMPAT_MATCHES_i2c_device 1
+#define DT_N_S_soc_S_i2c_40003000_S_tc74_4d_STATUS_okay 1
 
 /* Pin control (pinctrl-<i>, pinctrl-names) properties: */
-#define DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d_PINCTRL_NUM 0
+#define DT_N_S_soc_S_i2c_40003000_S_tc74_4d_PINCTRL_NUM 0
 
 /* Generic property macros: */
-#define DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d_P_compatible {"i2c-device"}
-#define DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d_P_compatible_IDX_0 "i2c-device"
-#define DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d_P_compatible_IDX_0_EXISTS 1
-#define DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d_P_compatible_FOREACH_PROP_ELEM(fn) fn(DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d, compatible, 0)
-#define DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d_P_compatible_FOREACH_PROP_ELEM_VARGS(fn, ...) fn(DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d, compatible, 0, __VA_ARGS__)
-#define DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d_P_compatible_LEN 1
-#define DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d_P_compatible_EXISTS 1
-#define DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d_P_reg {77 /* 0x4d */}
-#define DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d_P_reg_IDX_0 77
-#define DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d_P_reg_IDX_0_EXISTS 1
-#define DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d_P_reg_FOREACH_PROP_ELEM(fn) fn(DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d, reg, 0)
-#define DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d_P_reg_FOREACH_PROP_ELEM_VARGS(fn, ...) fn(DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d, reg, 0, __VA_ARGS__)
-#define DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d_P_reg_EXISTS 1
-#define DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d_P_label "tempsensor"
-#define DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d_P_label_STRING_TOKEN tempsensor
-#define DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d_P_label_STRING_UPPER_TOKEN TEMPSENSOR
-#define DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d_P_label_FOREACH_PROP_ELEM(fn) fn(DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d, label, 0) \
-	fn(DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d, label, 1) \
-	fn(DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d, label, 2) \
-	fn(DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d, label, 3) \
-	fn(DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d, label, 4) \
-	fn(DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d, label, 5) \
-	fn(DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d, label, 6) \
-	fn(DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d, label, 7) \
-	fn(DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d, label, 8) \
-	fn(DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d, label, 9)
-#define DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d_P_label_FOREACH_PROP_ELEM_VARGS(fn, ...) fn(DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d, label, 0, __VA_ARGS__) \
-	fn(DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d, label, 1, __VA_ARGS__) \
-	fn(DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d, label, 2, __VA_ARGS__) \
-	fn(DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d, label, 3, __VA_ARGS__) \
-	fn(DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d, label, 4, __VA_ARGS__) \
-	fn(DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d, label, 5, __VA_ARGS__) \
-	fn(DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d, label, 6, __VA_ARGS__) \
-	fn(DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d, label, 7, __VA_ARGS__) \
-	fn(DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d, label, 8, __VA_ARGS__) \
-	fn(DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d, label, 9, __VA_ARGS__)
-#define DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d_P_label_EXISTS 1
+#define DT_N_S_soc_S_i2c_40003000_S_tc74_4d_P_compatible {"i2c-device"}
+#define DT_N_S_soc_S_i2c_40003000_S_tc74_4d_P_compatible_IDX_0 "i2c-device"
+#define DT_N_S_soc_S_i2c_40003000_S_tc74_4d_P_compatible_IDX_0_EXISTS 1
+#define DT_N_S_soc_S_i2c_40003000_S_tc74_4d_P_compatible_FOREACH_PROP_ELEM(fn) fn(DT_N_S_soc_S_i2c_40003000_S_tc74_4d, compatible, 0)
+#define DT_N_S_soc_S_i2c_40003000_S_tc74_4d_P_compatible_FOREACH_PROP_ELEM_VARGS(fn, ...) fn(DT_N_S_soc_S_i2c_40003000_S_tc74_4d, compatible, 0, __VA_ARGS__)
+#define DT_N_S_soc_S_i2c_40003000_S_tc74_4d_P_compatible_LEN 1
+#define DT_N_S_soc_S_i2c_40003000_S_tc74_4d_P_compatible_EXISTS 1
+#define DT_N_S_soc_S_i2c_40003000_S_tc74_4d_P_reg {77 /* 0x4d */}
+#define DT_N_S_soc_S_i2c_40003000_S_tc74_4d_P_reg_IDX_0 77
+#define DT_N_S_soc_S_i2c_40003000_S_tc74_4d_P_reg_IDX_0_EXISTS 1
+#define DT_N_S_soc_S_i2c_40003000_S_tc74_4d_P_reg_FOREACH_PROP_ELEM(fn) fn(DT_N_S_soc_S_i2c_40003000_S_tc74_4d, reg, 0)
+#define DT_N_S_soc_S_i2c_40003000_S_tc74_4d_P_reg_FOREACH_PROP_ELEM_VARGS(fn, ...) fn(DT_N_S_soc_S_i2c_40003000_S_tc74_4d, reg, 0, __VA_ARGS__)
+#define DT_N_S_soc_S_i2c_40003000_S_tc74_4d_P_reg_EXISTS 1
+#define DT_N_S_soc_S_i2c_40003000_S_tc74_4d_P_label "tc74"
+#define DT_N_S_soc_S_i2c_40003000_S_tc74_4d_P_label_STRING_TOKEN tc74
+#define DT_N_S_soc_S_i2c_40003000_S_tc74_4d_P_label_STRING_UPPER_TOKEN TC74
+#define DT_N_S_soc_S_i2c_40003000_S_tc74_4d_P_label_FOREACH_PROP_ELEM(fn) fn(DT_N_S_soc_S_i2c_40003000_S_tc74_4d, label, 0) \
+	fn(DT_N_S_soc_S_i2c_40003000_S_tc74_4d, label, 1) \
+	fn(DT_N_S_soc_S_i2c_40003000_S_tc74_4d, label, 2) \
+	fn(DT_N_S_soc_S_i2c_40003000_S_tc74_4d, label, 3)
+#define DT_N_S_soc_S_i2c_40003000_S_tc74_4d_P_label_FOREACH_PROP_ELEM_VARGS(fn, ...) fn(DT_N_S_soc_S_i2c_40003000_S_tc74_4d, label, 0, __VA_ARGS__) \
+	fn(DT_N_S_soc_S_i2c_40003000_S_tc74_4d, label, 1, __VA_ARGS__) \
+	fn(DT_N_S_soc_S_i2c_40003000_S_tc74_4d, label, 2, __VA_ARGS__) \
+	fn(DT_N_S_soc_S_i2c_40003000_S_tc74_4d, label, 3, __VA_ARGS__)
+#define DT_N_S_soc_S_i2c_40003000_S_tc74_4d_P_label_EXISTS 1
 
 /*
  * Devicetree node: /soc/qspi@40029000
@@ -13454,8 +13442,8 @@
 #define DT_FOREACH_OKAY_VARGS_nordic_nrf_twi(fn, ...) fn(DT_N_S_soc_S_i2c_40003000, __VA_ARGS__)
 #define DT_FOREACH_OKAY_INST_nordic_nrf_twi(fn) fn(0)
 #define DT_FOREACH_OKAY_INST_VARGS_nordic_nrf_twi(fn, ...) fn(0, __VA_ARGS__)
-#define DT_FOREACH_OKAY_i2c_device(fn) fn(DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d)
-#define DT_FOREACH_OKAY_VARGS_i2c_device(fn, ...) fn(DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d, __VA_ARGS__)
+#define DT_FOREACH_OKAY_i2c_device(fn) fn(DT_N_S_soc_S_i2c_40003000_S_tc74_4d)
+#define DT_FOREACH_OKAY_VARGS_i2c_device(fn, ...) fn(DT_N_S_soc_S_i2c_40003000_S_tc74_4d, __VA_ARGS__)
 #define DT_FOREACH_OKAY_INST_i2c_device(fn) fn(0)
 #define DT_FOREACH_OKAY_INST_VARGS_i2c_device(fn, ...) fn(0, __VA_ARGS__)
 #define DT_FOREACH_OKAY_nordic_nrf_spi(fn) fn(DT_N_S_soc_S_spi_40004000)

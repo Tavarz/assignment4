@@ -61,7 +61,7 @@ __devicehdl_DT_N_S_soc_S_uart_40002000[] = { DEVICE_HANDLE_SEP, DEVICE_HANDLE_SE
  *   - (/pin-controller/i2c0_sleep)
  *   - (/soc/interrupt-controller@e000e100)
  * Supported:
- *   - (/soc/i2c@40003000/tempsensor@4d)
+ *   - (/soc/i2c@40003000/tc74@4d)
  */
 const device_handle_t __aligned(2) __attribute__((__section__(".__device_handles_pass2")))
 __devicehdl_DT_N_S_soc_S_i2c_40003000[] = { DEVICE_HANDLE_SEP, DEVICE_HANDLE_SEP, DEVICE_HANDLE_ENDS };

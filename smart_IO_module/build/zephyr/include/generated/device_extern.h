@@ -132,7 +132,7 @@ extern const struct device DEVICE_DT_NAME_GET(DT_N_S_soc_S_flash_controller_4001
 extern const struct device DEVICE_DT_NAME_GET(DT_N_S_soc_S_flash_controller_4001e000_S_flash_0_S_partitions_S_partition_da000); /* dts_ord_124 */
 extern const struct device DEVICE_DT_NAME_GET(DT_N_S_soc_S_flash_controller_4001e000_S_flash_0_S_partitions_S_partition_f8000); /* dts_ord_125 */
 extern const struct device DEVICE_DT_NAME_GET(DT_N_S_soc_S_i2c_40003000); /* dts_ord_126 */
-extern const struct device DEVICE_DT_NAME_GET(DT_N_S_soc_S_i2c_40003000_S_tempsensor_4d); /* dts_ord_127 */
+extern const struct device DEVICE_DT_NAME_GET(DT_N_S_soc_S_i2c_40003000_S_tc74_4d); /* dts_ord_127 */
 extern const struct device DEVICE_DT_NAME_GET(DT_N_S_soc_S_qspi_40029000); /* dts_ord_128 */
 extern const struct device DEVICE_DT_NAME_GET(DT_N_S_soc_S_qspi_40029000_S_mx25r6435f_0); /* dts_ord_129 */
 

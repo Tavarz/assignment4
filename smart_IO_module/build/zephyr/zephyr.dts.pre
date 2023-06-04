@@ -1127,12 +1127,12 @@ zephyr_udc0: &usbd {
 };
 # 0 "<command-line>" 2
 # 1 "/home/rt/Desktop/Projeto4/assignment4/smart_IO_module/nrf52840dk_nrf52840.overlay" 1
-# 24 "/home/rt/Desktop/Projeto4/assignment4/smart_IO_module/nrf52840dk_nrf52840.overlay"
+# 16 "/home/rt/Desktop/Projeto4/assignment4/smart_IO_module/nrf52840dk_nrf52840.overlay"
 &i2c0 {
-    tempsensor: tempsensor@4d{
+    tc74: tc74@4d{
         compatible = "i2c-device";
         reg = < 0x4d >;
-        label = "tempsensor";
+        label = "tc74";
     };
 };
 # 0 "<command-line>" 2

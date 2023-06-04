@@ -12,20 +12,12 @@
 // You can also visit the nRF DeviceTree extension documentation at https://nrfconnect.github.io/vscode-nrf-connect/devicetree/nrfdevicetree.html
 
 
-// end do tc74 -> 100 1101b 
-/*
-&i2c0 {
-    tempsensor: tempsensor@4d{
-        compatible = "i2c-device";
-        reg = < 0x4d >;
-        label = "TempSensor";
-    };S
-};*/
+// end do tc74 -> 100 1101 4d
 &i2c0 {  
-    tempsensor: tempsensor@4d{
+    tc74: tc74@4d{
         compatible = "i2c-device";
         reg = < 0x4d >;
-        label = "tempsensor";
+        label = "tc74";
     };
 };
 

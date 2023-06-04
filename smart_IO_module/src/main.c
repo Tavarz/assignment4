@@ -1,5 +1,5 @@
 /*
- * Paulo Pedreiras, 2023/03
+ * Bernardo Tavares 84712 e João Rodrigues 89029, 2023/03
  * Zephyr: Simple thread and Digital Input Interrupt example
  * 
  *  Button 1 generates an interrupt that toggles a global var
@@ -31,6 +31,7 @@
 
 #include <zephyr/types.h>
 #include <zephyr/drivers/i2c.h>
+#include <zephyr/drivers/uart.h>
 #include <zephyr/sys/util.h>
 #include <inttypes.h>
 
@@ -41,16 +42,28 @@
 #define thread_temperature_prio 3
 #define thread_button_prio 3
 #define thread_led_prio 3
-#define thread_print_prio 1
+#define thread_print_prio 4
 
 /* Therad periodicity (in ms)*/
-#define thread_temperature_period 20
-#define thread_button_period 20
-#define thread_led_period 20
-#define thread_print_period 20
+int thread_temperature_period = 20;
+int thread_button_period = 20;
+int thread_led_period = 20;
+#define thread_print_period 1000
+
+/* 1000 msec = 1 sec */
+#define SLEEP_TIME_MS 1000
+
+/* Define the size of the UART receive buffer */
+#define RECEIVE_BUFF_SIZE 10
+
+/* Define the receiving timeout period of UART */
+#define RECEIVE_TIMEOUT 100
 
 /* I2C node identifier*/
-#define I2C_NODE DT_NODELABEL(tempsensor)
+#define I2C_NODE DT_NODELABEL(tc74)
+
+/* UART node identifier*/
+#define UART_NODE DT_NODELABEL(uart0)
 
 
 /* Create thread stack space */
@@ -81,8 +94,11 @@ void thread_print_code(void *, void *, void *);
 /* I2C struct*/
 static const struct i2c_dt_spec dev_i2c = I2C_DT_SPEC_GET(I2C_NODE);
 
+/* Get the device pointer of the UART hardware */
+const struct device *uart = DEVICE_DT_GET(UART_NODE);
+
 /* sensor config register*/
-uint8_t config = 0x00;
+/*uint8_t*/#define config  0x00
 
 /* Get node IDs. Refer to dts file and HW documentation*/
 #define LED0_NID DT_NODELABEL(led0) 
@@ -111,8 +127,8 @@ volatile int But1 = 0;
 volatile int But2 = 0;      
 volatile int But3 = 0;  
 
-volatile int led0stat = 0; /* Led status variable. Updated by the callback function */
-volatile int led1stat = 0; /* Led status variable. Updated by the callback function */
+volatile int led0stat = 1; /* Led status variable. Updated by the callback function */
+volatile int led1stat = 1; /* Led status variable. Updated by the callback function */
 volatile int led2stat = 0; /* Led status variable. Updated by the callback function */
 volatile int led3stat = 0; /* Led status variable. Updated by the callback function */
 
@@ -120,6 +136,187 @@ int ret;
 
 /* Temperature */
 int8_t temp;
+
+/* Define the transmission buffer, which is a buffer to hold the data to be sent over UART */
+static uint8_t tx_buf[] =   {"Insert a comand: \n\r"};
+
+/* STEP 10.1.2 - Define the receive buffer */
+static uint8_t rx_buf[RECEIVE_BUFF_SIZE] = {0};
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#define MAX_CMDSTRING_SIZE 10   /* Maximum size of the command string */ 
+#define SOF_SYM '#'             /* Start of Frame Symbol */
+#define EOF_SYM '!'             /* End of Frame Symbol */
+#define EXIT_SUCCESS    0;      /* Successfull exit */
+#define EMPTY_STRING   -1;      /* String is empty */
+#define STRING_FULL    -1;      /* String is full */
+#define CMD_NOT_FOUND  -2;      /* Invalid CMD */
+#define CS_ERROR       -3;      /* Wrong CS */
+#define WRONG_STR_FORMAT -4;    /* Wrong string format*/
+
+/* Internal variables */
+
+static char cmdString[RECEIVE_BUFF_SIZE];
+
+static unsigned char cmdStringLen = 0; 
+
+int SOF_C = 0;
+
+int EOF_C = 0;
+
+/* ************************************************************ */
+/* Processes the chars received so far looking for commands     */
+/* Returns:                                                     */
+/*  	 0: if a valid command was found and executed           */
+/* 	-1: if empty string or incomplete command found             */
+/* 	-2: if an invalid command was found                         */
+/* 	-3: if a CS error is detected (command not executed)        */
+/* 	-4: if string format is wrong                               */
+/* ************************************************************ */
+
+int cmdProcessor(void) {
+
+	int i;
+
+	/* Detect empty cmd string */
+	if(cmdStringLen == 0) {
+		return EMPTY_STRING;
+    } 
+
+	/* Find index of SOF */
+	for(i=0; i < cmdStringLen; i++) {
+		if(cmdString[i] == SOF_SYM) {
+			break;
+		}
+	}											
+
+	/* If a SOF was found look for commands */
+	if(i < cmdStringLen) {
+		if(cmdString[i+1] == 'L') { /* L command detected */
+
+            if((cmdString[i+4] != EOF_SYM) || ((i+4) > cmdStringLen)) { /*Detect EOF symbol*/
+				return WRONG_STR_FORMAT;	
+			}
+
+            switch(cmdString[i+2]) {
+                case('0'):
+                    gpio_pin_set_dt(&led0_dev,cmdString[i+3]);
+                break;
+
+                case('1'):
+                    gpio_pin_set_dt(&led1_dev,cmdString[i+3]);
+                break;
+
+                case('2'):
+                    gpio_pin_set_dt(&led2_dev,cmdString[i+3]);
+                break;
+
+                case('3'):
+                    gpio_pin_set_dt(&led3_dev,cmdString[i+3]);
+                break;
+                
+                default:
+                return WRONG_STR_FORMAT;
+            }
+            return EXIT_SUCCESS;
+
+        }else if(cmdString[i+1] == 'T') { /* T command detected */
+
+			if(cmdString[i+7] != EOF_SYM)  {/*Detect EOF symbol*/
+					return WRONG_STR_FORMAT;	
+			}
+            switch(cmdString[i+2]) {
+                case('1'):
+                    thread_temperature_period = (cmdString[i+3] - '0') * 1000 + (cmdString[i+4] - '0') * 100 + (cmdString[i+5] - '0') * 10 + (cmdString[i+6] - '0') * 1;
+                break;
+
+                case('2'):
+                    thread_button_period = (cmdString[i+3] - '0') * 1000 + (cmdString[i+4] - '0') * 100 + (cmdString[i+5] - '0') * 10 + (cmdString[i+6] - '0') * 1;
+                break;
+
+                case('3'):
+                    thread_led_period = (cmdString[i+3] - '0') * 1000 + (cmdString[i+4] - '0') * 100 + (cmdString[i+5] - '0') * 10 + (cmdString[i+6] - '0') * 1;
+                break;
+
+                default:
+                    return WRONG_STR_FORMAT;                        
+                }
+			return EXIT_SUCCESS;
+		}else {
+			return CMD_NOT_FOUND;
+		}		
+	}
+	/* cmd string not null and SOF not found */
+	return WRONG_STR_FORMAT;
+}
+
+/* ******************************** */
+/* Adds a char to the cmd string 	*/
+/* Returns: 				        */
+/*  	 0: if success 		        */
+/* 		-1: if cmd string full 	    */
+/* ******************************** */
+int newCmdChar(unsigned char newChar) {
+	/* If cmd string not full add char to it */
+	if (cmdStringLen < MAX_CMDSTRING_SIZE) {
+		/*Verificar se é um char e também se for adicionado mais do que um SOF ou EOF, retorna WRONG_STR_FORMAT*/
+		if(newChar == '#') {
+			SOF_C ++;
+		}
+		else if(newChar == '!') {
+			EOF_C ++;
+		}
+		if((SOF_C != 1) || (EOF_C != 1)) {
+			SOF_C = 0;
+			EOF_C = 0;
+			return WRONG_STR_FORMAT;
+		}
+		cmdString[cmdStringLen] = newChar;
+		cmdStringLen +=1;
+		return EXIT_SUCCESS;
+	}
+	/* If cmd string full return error */
+	return STRING_FULL;
+}
+
+/* Resets the command string */  
+void resetCmdString(void) {
+	cmdStringLen = 0;
+	SOF_C = 0;
+	EOF_C = 0;		
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+static void uart_cb(const struct device *dev, struct uart_event *evt, void *user_data) {
+	int i = 0,res = 1;
+    switch (evt->type) {
+
+	case UART_RX_RDY:
+        if((evt->data.rx.len) != 0) {
+            while(i < sizeof(rx_buf)) {
+                
+                if(rx_buf[i] == '!') {
+                    res = newCmdChar(rx_buf[i]);
+                    break;
+                }
+                res = newCmdChar(rx_buf[i]);	
+                i++;
+            }
+            res = cmdProcessor();
+            printk("cmdProcessor output: %d\n\r", res);
+        }
+        break;
+
+	case UART_RX_DISABLED:
+		uart_rx_enable(dev ,rx_buf,sizeof rx_buf,RECEIVE_TIMEOUT);
+		break;
+		
+	default:
+		break;
+	}
+
+}
 
 /* Main function */
 void main(void) {
@@ -175,6 +372,12 @@ void main(void) {
         printk("Fatal error: but3 device not ready!");
 		return;
 	}
+
+    /* UART */
+    if (!device_is_ready(uart)) {
+        printk("UART device not ready\r\n");
+        return;
+    }
 
     /* I2C */
 
@@ -237,6 +440,28 @@ void main(void) {
 	    return;
     }
 
+    /* UART */
+
+    ret = uart_callback_set(uart, uart_cb, NULL);
+    if (ret) {
+		return;
+	}
+
+    /* Send the data over UART by calling uart_tx() */
+	ret = uart_tx(uart, tx_buf, sizeof(tx_buf), SYS_FOREVER_MS);
+    if (ret) {
+		return;
+	}
+
+    /* Start receiving by calling uart_rx_enable() and pass it the address of the receive  buffer */
+	ret = uart_rx_enable(uart ,rx_buf,sizeof rx_buf,RECEIVE_TIMEOUT);
+	if (ret) {
+		return;
+	}
+	while (1) {
+		k_msleep(SLEEP_TIME_MS);
+	}
+
     /* I2C */
 
     ret = i2c_write_dt(&dev_i2c, config, sizeof(config));
@@ -246,7 +471,6 @@ void main(void) {
 
     timing_init();
     timing_start();
-
     
     /* Then create the task */
     thread_temperature_tid = k_thread_create(&thread_temperature_data, thread_temperature_stack,
@@ -267,7 +491,7 @@ void main(void) {
 
     return;
 
-} 
+}
 
 /* Thread temperature code implementation */
 void thread_temperature_code(void *argA , void *argB, void *argC)
@@ -295,7 +519,7 @@ void thread_temperature_code(void *argA , void *argB, void *argC)
 		}
 
 		if(temp < 0){
-			printk("-%d \n", abs(temp));
+			printk("-%d \n",temp);
 		}
 		else{
 			printk("%d \n", temp);
@@ -421,10 +645,7 @@ void thread_print_code(void *argA , void *argB, void *argC)
 
     /* Thread loop */
     while(1) {        
-       /* Print menu */
-	    printk("\033[2J");
-		printk("\033[H");
-       
+       /* Print menu */       
 	    printk("#######     Menu     #######\n\n\r    Button state(1-ON  0-OFF):\n\r   Button 1 : %d   Button 2 : %d   Button 3 : %d   Button 4 : %d\n\n\r",But0,But1,But2,But3);
 	    printk("    Led state(1-ON  0-OFF):\n\r   Led 1 : %d   Led 2 : %d   Led 3 : %d   Led 4 : %d\n\n\r",led0stat,led1stat,led2stat,led3stat);
 		printk("    Temperature : %d C\n\n\r",temp);
