@@ -167,6 +167,9 @@ static uint8_t tx_buf[] =   {""};
 /* STEP 10.1.2 - Define the receive buffer */
 static uint8_t rx_buf[RECEIVE_BUFF_SIZE] = {0};
 
+/* String full*/
+volatile int strFull = 0;
+
 /* Internal variables */
 
 static char cmdString[RECEIVE_BUFF_SIZE];
@@ -482,7 +485,8 @@ int newCmdChar(unsigned char newChar) {
 void resetCmdString(void) {
 	cmdStringLen = 0;
 	SOF_C = 0;
-	EOF_C = 0;		
+	EOF_C = 0;	
+    strFull = 0;	
 }
 
 static void uart_cb(const struct device *dev, struct uart_event *evt, void *user_data) {
@@ -496,6 +500,9 @@ static void uart_cb(const struct device *dev, struct uart_event *evt, void *user
                 break;
             }
             res = newCmdChar(evt->data.rx.buf[evt->data.rx.offset]);
+            if(res != 0) {
+                strFull = 1;
+            }
         }
         break;
 
@@ -681,6 +688,9 @@ void thread_print_code(void *argA , void *argB, void *argC)
         printk("   Command : ");
         for(int i = 0; i < cmdStringLen; i++) {
             printk("%c",cmdString[i]);
+        }
+        if(strFull) {
+            printk("        String is full! Press enter!");
         }
         /* Wait for next release instant */ 
         fin_time = k_uptime_get();
