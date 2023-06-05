@@ -42,16 +42,18 @@
 #define thread_temperature_prio 3
 #define thread_button_prio 3
 #define thread_led_prio 3
+#define thread_cmd_prio 3
 #define thread_print_prio 2
 
 /* Therad periodicity (in ms)*/
-int thread_temperature_period = 20;
-int64_t release_time_temperature = 0;
-int thread_button_period = 1000;
-int64_t release_time_button = 0;
-int thread_led_period = 20;
-int64_t release_time_led = 0;
+volatile int thread_temperature_period = 20;
+volatile int64_t release_time_temperature = 0;
+volatile int thread_button_period = 20;
+volatile int64_t release_time_button = 0;
+volatile int thread_led_period = 20;
+volatile int64_t release_time_led = 0;
 #define thread_print_period 300
+#define thread_cmd_period 20
 
 /* 1000 msec = 1 sec */
 #define SLEEP_TIME_MS 1000
@@ -69,40 +71,6 @@ int64_t release_time_led = 0;
 #define UART_NODE DT_NODELABEL(uart0)
 
 
-/* Create thread stack space */
-K_THREAD_STACK_DEFINE(thread_temperature_stack, STACK_SIZE);
-K_THREAD_STACK_DEFINE(thread_button_stack, STACK_SIZE);
-K_THREAD_STACK_DEFINE(thread_led_stack, STACK_SIZE);
-K_THREAD_STACK_DEFINE(thread_print_stack, STACK_SIZE);
-  
-/* Create variables for thread data */
-struct k_thread thread_temperature_data;
-struct k_thread thread_button_data;
-struct k_thread thread_led_data;
-struct k_thread thread_print_data;
-
-/* Create task IDs */
-k_tid_t thread_temperature_tid;
-k_tid_t thread_button_tid;
-k_tid_t thread_led_tid;
-k_tid_t thread_print_tid;
-
-/* Thread code prototypes */
-void thread_temperature_code(void *argA, void *argB, void *argC);
-void thread_button_code(void *argA, void *argB, void *argC);
-void thread_led_code(void *argA, void *argB, void *argC);
-void thread_print_code(void *argA, void *argB, void *argC);
-
-
-/* I2C struct*/
-static const struct i2c_dt_spec dev_i2c = I2C_DT_SPEC_GET(I2C_NODE);
-
-/* Get the device pointer of the UART hardware */
-const struct device *uart = DEVICE_DT_GET(UART_NODE);
-
-/* sensor config register*/
-/*uint8_t*/#define config  0x00
-
 /* Get node IDs. Refer to dts file and HW documentation*/
 #define LED0_NID DT_NODELABEL(led0) 
 #define LED1_NID DT_NODELABEL(led1)
@@ -112,6 +80,53 @@ const struct device *uart = DEVICE_DT_GET(UART_NODE);
 #define BUT1_NID DT_NODELABEL(button1) 
 #define BUT2_NID DT_NODELABEL(button2) 
 #define BUT3_NID DT_NODELABEL(button3) 
+
+/* Define for filtering commands */
+#define MAX_CMDSTRING_SIZE 10   /* Maximum size of the command string */ 
+#define SOF_SYM '#'             /* Start of Frame Symbol */
+#define EOF_SYM '!'             /* End of Frame Symbol */
+#define EXIT_SUCCESS    0;      /* Successfull exit */
+#define EMPTY_STRING   -1;      /* String is empty */
+#define STRING_FULL    -1;      /* String is full */
+#define CMD_NOT_FOUND  -2;      /* Invalid CMD */
+#define WRONG_STR_FORMAT -4;    /* Wrong string format*/
+
+/* sensor config register*/
+#define config  0x00
+
+/* Create thread stack space */
+K_THREAD_STACK_DEFINE(thread_temperature_stack, STACK_SIZE);
+K_THREAD_STACK_DEFINE(thread_button_stack, STACK_SIZE);
+K_THREAD_STACK_DEFINE(thread_led_stack, STACK_SIZE);
+K_THREAD_STACK_DEFINE(thread_print_stack, STACK_SIZE);
+K_THREAD_STACK_DEFINE(thread_cmd_stack, STACK_SIZE);
+  
+/* Create variables for thread data */
+struct k_thread thread_temperature_data;
+struct k_thread thread_button_data;
+struct k_thread thread_led_data;
+struct k_thread thread_print_data;
+struct k_thread thread_cmd_data;
+
+/* Create task IDs */
+k_tid_t thread_temperature_tid;
+k_tid_t thread_button_tid;
+k_tid_t thread_led_tid;
+k_tid_t thread_print_tid;
+k_tid_t thread_cmd_tid;
+
+/* Thread code prototypes */
+void thread_temperature_code(void *argA, void *argB, void *argC);
+void thread_button_code(void *argA, void *argB, void *argC);
+void thread_led_code(void *argA, void *argB, void *argC);
+void thread_print_code(void *argA, void *argB, void *argC);
+void thread_cmd_code(void *argA, void *argB, void *argC);
+
+/* I2C struct*/
+static const struct i2c_dt_spec dev_i2c = I2C_DT_SPEC_GET(I2C_NODE);
+
+/* Get the device pointer of the UART hardware */
+const struct device *uart = DEVICE_DT_GET(UART_NODE);
 
 /* Get gpio device structures */
 const struct gpio_dt_spec led0_dev = GPIO_DT_SPEC_GET(LED0_NID,gpios);
@@ -134,30 +149,23 @@ volatile int led0stat = 0; /* Led status variable. Updated by the callback funct
 volatile int led1stat = 0; /* Led status variable. Updated by the callback function */
 volatile int led2stat = 0; /* Led status variable. Updated by the callback function */
 volatile int led3stat = 0; /* Led status variable. Updated by the callback function */
+volatile int led0temp =0,led1temp=0,led2temp=0,led3temp=0;
 
 int ret;
-
+volatile int cmd = 0;
+volatile int res = 1;
 
 /* Temperature */
-int8_t temp;
+volatile int8_t temp;
+volatile int update_temperature_period = 0;
+volatile int update_button_period = 0;
+volatile int update_led_period = 0;
 
 /* Define the transmission buffer, which is a buffer to hold the data to be sent over UART */
 static uint8_t tx_buf[] =   {""};
 
 /* STEP 10.1.2 - Define the receive buffer */
 static uint8_t rx_buf[RECEIVE_BUFF_SIZE] = {0};
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-#define MAX_CMDSTRING_SIZE 10   /* Maximum size of the command string */ 
-#define SOF_SYM '#'             /* Start of Frame Symbol */
-#define EOF_SYM '!'             /* End of Frame Symbol */
-#define EXIT_SUCCESS    0;      /* Successfull exit */
-#define EMPTY_STRING   -1;      /* String is empty */
-#define STRING_FULL    -1;      /* String is full */
-#define CMD_NOT_FOUND  -2;      /* Invalid CMD */
-#define CS_ERROR       -3;      /* Wrong CS */
-#define WRONG_STR_FORMAT -4;    /* Wrong string format*/
 
 /* Internal variables */
 
@@ -169,6 +177,7 @@ int SOF_C = 0;
 
 int EOF_C = 0;
 
+/* Functions prototypes */
 void resetCmdString(void);
 int cmdProcessor(void);
 int newCmdChar(unsigned char newChar);
@@ -323,6 +332,7 @@ void main(void) {
 
     timing_init();
     timing_start();
+
     /* Then create the task */
     thread_temperature_tid = k_thread_create(&thread_temperature_data, thread_temperature_stack,
         K_THREAD_STACK_SIZEOF(thread_temperature_stack), thread_temperature_code,
@@ -339,6 +349,10 @@ void main(void) {
 	thread_print_tid = k_thread_create(&thread_print_data, thread_print_stack,
         K_THREAD_STACK_SIZEOF(thread_print_stack), thread_print_code,
         NULL, NULL, NULL, thread_print_prio, 0, K_NO_WAIT);
+    
+    thread_cmd_tid = k_thread_create(&thread_cmd_data, thread_cmd_stack,
+        K_THREAD_STACK_SIZEOF(thread_cmd_stack), thread_cmd_code,
+        NULL, NULL, NULL, thread_cmd_prio, 0, K_NO_WAIT);
 
         resetCmdString();
     return;
@@ -394,19 +408,19 @@ int cmdProcessor(void) {
 
             switch(cmdString[i+2]) {
                 case('1'):
-                    led0stat = (cmdString[i+3]-'0');
+                    led0temp = (cmdString[i+3]-'0');
                 break;
 
                 case('2'):
-                    led1stat = (cmdString[i+3]-'0');
+                    led1temp = (cmdString[i+3]-'0');
                 break;
 
                 case('3'):
-                    led2stat = (cmdString[i+3]-'0');
+                    led2temp = (cmdString[i+3]-'0');
                 break;
 
                 case('4'):
-                    led3stat = (cmdString[i+3]-'0');
+                    led3temp = (cmdString[i+3]-'0');
                 break;
                 
                 default:
@@ -422,17 +436,17 @@ int cmdProcessor(void) {
             switch(cmdString[i+2]) {
                 case('1'):
                     thread_temperature_period = (cmdString[i+3] - '0') * 1000 + (cmdString[i+4] - '0') * 100 + (cmdString[i+5] - '0') * 10 + (cmdString[i+6] - '0') * 1;
-                    release_time_temperature = k_uptime_get() + thread_temperature_period;
+                    update_temperature_period = 1;
                 break;
 
                 case('2'):
-                    thread_button_period = (cmdString[i+3] - '0') * 1000 + (cmdString[i+4] - '0') * 100 + (cmdString[i+5] - '0') * 10 + (cmdString[i+6] - '0') * 1;
-                    release_time_button = k_uptime_get() + thread_button_period;
+                    thread_button_period = (cmdString[i+3] - '0') * 1000 + (cmdString[i+4] - '0') * 100 + (cmdString[i+5] - '0') * 10 + (cmdString[i+6] - '0') * 1;                    
+                    update_button_period = 1;
                 break;
 
                 case('3'):
                     thread_led_period = (cmdString[i+3] - '0') * 1000 + (cmdString[i+4] - '0') * 100 + (cmdString[i+5] - '0') * 10 + (cmdString[i+6] - '0') * 1;
-                    release_time_led = k_uptime_get() + thread_led_period;
+                    update_led_period = 1;
                 break;
 
                 default:
@@ -456,7 +470,6 @@ int cmdProcessor(void) {
 int newCmdChar(unsigned char newChar) {
 	/* If cmd string not full add char to it */
 	if (cmdStringLen < MAX_CMDSTRING_SIZE) {
-		/*Verificar se é um char e também se for adicionado mais do que um SOF ou EOF, retorna WRONG_STR_FORMAT*/
 		cmdString[cmdStringLen] = newChar;
 		cmdStringLen ++;
 		return EXIT_SUCCESS;
@@ -471,23 +484,18 @@ void resetCmdString(void) {
 	SOF_C = 0;
 	EOF_C = 0;		
 }
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 static void uart_cb(const struct device *dev, struct uart_event *evt, void *user_data) {
-	int res = 1;
-    unsigned char c;
+	
     switch (evt->type) {
 
 	case UART_RX_RDY:
         if(evt->data.rx.len > 0){
             if(evt->data.rx.buf[evt->data.rx.offset] == '\r') {
-                res = cmdProcessor();
-                printk("\n\rcmdProcessor output: %d\n\r", res);
-                resetCmdString();
+                cmd = 1;
                 break;
             }
-            c = evt->data.rx.buf[evt->data.rx.offset];
-            printk("%c",c);
-            res = newCmdChar(c);
+            res = newCmdChar(evt->data.rx.buf[evt->data.rx.offset]);
         }
         break;
 
@@ -505,8 +513,7 @@ void thread_temperature_code(void *argA , void *argB, void *argC)
 {
     /* Local vars */
     int64_t fin_time=0;     /* Timing variables to control task periodicity */  
-
-        
+    
     /* Task init code */
     printk("Thread temperature init (periodic)\n");
 
@@ -516,6 +523,11 @@ void thread_temperature_code(void *argA , void *argB, void *argC)
     /* Thread loop */
     while(1) {		
 		
+        if(update_temperature_period){
+            release_time_temperature = k_uptime_get() + thread_temperature_period;
+            update_temperature_period = 0;
+        }
+
 		ret = i2c_read_dt(&dev_i2c, &temp, sizeof(temp));
 		if(ret != 0){
 			printk("Failed to write/read I2C device address %x at Reg. %x \r\n", dev_i2c.addr,config);
@@ -543,7 +555,6 @@ void thread_button_code(void *argA , void *argB, void *argC)
 {
     /* Local vars */
     int64_t fin_time=0;     /* Timing variables to control task periodicity */  
-    int temp0, temp1, temp2, temp3;
         
     /* Task init code */
     printk("Thread button init (periodic)\n");
@@ -554,48 +565,23 @@ void thread_button_code(void *argA , void *argB, void *argC)
     /* Thread loop */
     while(1) {        
        
-       temp0 = gpio_pin_get_dt(&but0_dev);
-       temp1 = gpio_pin_get_dt(&but1_dev);
-       temp2 = gpio_pin_get_dt(&but2_dev);
-       temp3 = gpio_pin_get_dt(&but3_dev);
+        if(update_button_period){
+            release_time_button = k_uptime_get() + thread_button_period;
+            update_button_period = 0;
+        }
 
-    But0 = temp0;
-    But1 = temp1;
-    But2 = temp2;
-    But3 = temp3;
-    //    if(!temp0){
-    //     But0 = 1;
-    //    } else {
-    //     But0 = 0;
-    //    }
-
-    //    if(!temp1){
-    //     But1 = 1;
-    //    } else {
-    //     But1 = 0;
-    //    }
-
-    //    if(!temp2){
-    //     But2 = 1;
-    //    } else {
-    //     But2 = 0;
-    //    }
-
-    //    if(!temp3){
-    //     But3 = 1;
-    //    } else {
-    //     But3 = 0;
-    //    }
+        But0 = gpio_pin_get_dt(&but0_dev);
+        But1 = gpio_pin_get_dt(&but1_dev);
+        But2 = gpio_pin_get_dt(&but2_dev);
+        But3 = gpio_pin_get_dt(&but3_dev);
 
         /* Wait for next release instant */ 
         fin_time = k_uptime_get();
         if( fin_time < release_time_button) {
             k_msleep(release_time_button - fin_time);
-            release_time_button += thread_temperature_period;
-
+            release_time_button += thread_button_period;
         }
     }
-
     /* Stop timing functions */
     timing_stop();
 }
@@ -613,7 +599,16 @@ void thread_led_code(void *argA , void *argB, void *argC)
     release_time_led = k_uptime_get() + thread_led_period;
 
     /* Thread loop */
-    while(1) {        
+    while(1) {     
+
+        if(update_led_period){
+            release_time_led = k_uptime_get() + thread_led_period;
+            update_led_period = 0;
+        }
+        led0stat = led0temp;
+        led1stat = led1temp;
+        led2stat = led2temp;
+        led3stat = led3temp;
        /* checks the value of each led in the table and sets it*/
         gpio_pin_set_dt(&led0_dev,led0stat);
         gpio_pin_set_dt(&led1_dev,led1stat);
@@ -625,7 +620,38 @@ void thread_led_code(void *argA , void *argB, void *argC)
         if( fin_time < release_time_led) {
             k_msleep(release_time_led - fin_time);
             release_time_led += thread_led_period;
+        }
+    }
+    /* Stop timing functions */
+    timing_stop();
+}
 
+/* Thread cmd code implementation */
+void thread_cmd_code(void *argA , void *argB, void *argC)
+{
+    /* Local vars */
+    int64_t fin_time=0, release_time = 0;     /* Timing variables to control task periodicity */    
+        
+    /* Task init code */
+    printk("Thread cmd init (periodic)\n");
+
+    /* Compute next release instant */
+    release_time = k_uptime_get() + thread_cmd_period;
+
+    /* Thread loop */
+    while(1) {        
+        if(cmd){
+            res = cmdProcessor();
+            printk("\n\rcmdProcessor output: %d\n\r", res);
+            resetCmdString();
+            cmd=0;
+        }
+
+        /* Wait for next release instant */ 
+        fin_time = k_uptime_get();
+        if( fin_time < release_time) {
+            k_msleep(release_time - fin_time);
+            release_time += thread_cmd_period;
         }
     }
 
@@ -649,17 +675,13 @@ void thread_print_code(void *argA , void *argB, void *argC)
     while(1) {    
         printk("\033[2J\033[H");  
        /* Print menu */       
-	    printk("#######     Menu     #######\n\n\r    Button state (0-ON  1-OFF):\n\r   Button 1 : %d   Button 2 : %d   Button 3 : %d   Button 4 : %d\n\n\r",But0,But1,But2,But3);
-	    printk("    Led state(1-ON  0-OFF):\n\r   Led 1 : %d   Led 2 : %d   Led 3 : %d   Led 4 : %d\n\n\r",led0stat,led1stat,led2stat,led3stat);
-		printk("    Temperature : %d C\n\n\r",temp);
-        printk("\n\n\r    Command : ");
+	    printk("#######     Menu     #######\n\n\r   Button state (0-ON  1-OFF):\n\r   Button 1 : %d   Button 2 : %d   Button 3 : %d   Button 4 : %d\n\n\r",But0,But1,But2,But3);
+	    printk("   Led state(1-ON  0-OFF):\n\r   Led 1 : %d   Led 2 : %d   Led 3 : %d   Led 4 : %d\n\n\r",led0stat,led1stat,led2stat,led3stat);
+		printk("   Temperature : %d C\n\r",temp);
+        printk("   Command : ");
         for(int i = 0; i < cmdStringLen; i++) {
             printk("%c",cmdString[i]);
         }
-        printk("\n\n\r");
-
-
-
         /* Wait for next release instant */ 
         fin_time = k_uptime_get();
         if( fin_time < release_time) {
