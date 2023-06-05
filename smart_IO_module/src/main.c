@@ -1,34 +1,21 @@
-/*
- * Bernardo Tavares 84712 e João Rodrigues 89029, 2023/03
- * Zephyr: Simple thread and Digital Input Interrupt example
- * 
- *  Button 1 generates an interrupt that toggles a global var
- *  A Periodic task updates LED status according to global var
- *  Also shows how a single callback can handle multiple gpio interrupts
+/** @file main.c
+ * @brief Main source file for the real-time database application
  *
- * Base documentation:
- *  Zephyr kernel:  
- *      https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/zephyr/kernel/services/index.html#kernel-services
- *      
- *  DeviceTree 
- *      Board DTS can be found in BUILD_DIR/zephyr/zephyr.dts
- *      https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/zephyr/guides/dts/api-usage.html#dt-from-c  
- *
- *      HW info
- *      https://infocenter.nordicsemi.com/topic/struct_nrf52/struct/nrf52840.html
- *      Section: nRF52840 Product Specification -> Peripherals -> GPIO / GPIOTE
+ * This file creates a real-time database that works by threads
+ * It initializes devices, configures pins and starts threads for different actions
  * 
- *      Board specific HW info can be found in the nRF52840_DK_User_Guide_20201203. I/O pins available at pg 27
- * 
- * 
+ * @author Bernardo Tavares bernardot@ua.pt and Joao Rodrigues jpcr@ua.pt
+ * @date 06 June 2023
+ * @bug No known bugs.
  */
+
+/* Includes */
 #include <zephyr/kernel.h>          /* for kernel functions*/
 #include <zephyr/device.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/sys/printk.h>
 #include <zephyr/timing/timing.h>   /* for timing services */
-
 #include <zephyr/types.h>
 #include <zephyr/drivers/i2c.h>
 #include <zephyr/drivers/uart.h>
@@ -45,7 +32,7 @@
 #define thread_cmd_prio 3
 #define thread_print_prio 2
 
-/* Therad periodicity (in ms)*/
+/* Thread periodicity (in ms)*/
 volatile int thread_temperature_period = 20;
 volatile int64_t release_time_temperature = 0;
 volatile int thread_button_period = 20;
@@ -70,7 +57,6 @@ volatile int64_t release_time_led = 0;
 /* UART node identifier*/
 #define UART_NODE DT_NODELABEL(uart0)
 
-
 /* Get node IDs. Refer to dts file and HW documentation*/
 #define LED0_NID DT_NODELABEL(led0) 
 #define LED1_NID DT_NODELABEL(led1)
@@ -91,7 +77,7 @@ volatile int64_t release_time_led = 0;
 #define CMD_NOT_FOUND  -2;      /* Invalid CMD */
 #define WRONG_STR_FORMAT -4;    /* Wrong string format*/
 
-/* sensor config register*/
+/* Sensor config register*/
 #define config  0x00
 
 /* Create thread stack space */
@@ -149,11 +135,12 @@ volatile int led0stat = 0; /* Led status variable. Updated by the callback funct
 volatile int led1stat = 0; /* Led status variable. Updated by the callback function */
 volatile int led2stat = 0; /* Led status variable. Updated by the callback function */
 volatile int led3stat = 0; /* Led status variable. Updated by the callback function */
-volatile int led0temp =0,led1temp=0,led2temp=0,led3temp=0;
 
-int ret;
-volatile int cmd = 0;
-volatile int res = 1;
+/* Temporary variable to store user input for leds*/
+volatile int led0temp = 0;
+volatile int led1temp = 0;
+volatile int led2temp = 0; 
+volatile int led3temp = 0;
 
 /* Temperature */
 volatile int8_t temp;
@@ -164,21 +151,20 @@ volatile int update_led_period = 0;
 /* Define the transmission buffer, which is a buffer to hold the data to be sent over UART */
 static uint8_t tx_buf[] =   {""};
 
-/* STEP 10.1.2 - Define the receive buffer */
+/* Define the receive buffer */
 static uint8_t rx_buf[RECEIVE_BUFF_SIZE] = {0};
 
 /* String full*/
 volatile int strFull = 0;
 
 /* Internal variables */
-
-static char cmdString[RECEIVE_BUFF_SIZE];
-
-static unsigned char cmdStringLen = 0; 
-
-int SOF_C = 0;
-
-int EOF_C = 0;
+static char cmdString[RECEIVE_BUFF_SIZE];   //array to save chars 
+static unsigned char cmdStringLen = 0;      //array index
+int SOF_C = 0;      //Start of frame symbol counter per command
+int EOF_C = 0;      //End of frame symbol counter per command
+volatile int ret;
+volatile int cmd = 0;   //1-> command inserted, 0-> wait
+volatile int res = 1;
 
 /* Functions prototypes */
 void resetCmdString(void);
@@ -186,9 +172,22 @@ int cmdProcessor(void);
 int newCmdChar(unsigned char newChar);
 static void uart_cb(const struct device *dev, struct uart_event *evt, void *user_data);
 
-/* Main function */
+/**
+ * @brief Main function of the program
+ *
+ * This function checks all the devices' status (LEDs, Buttons, UART, I2C)
+ * and configures all the necessary pins for the project (4 LEDs and 4 Buttons).
+ * It also creates 4 threads to execute different actions:
+ *  - One to observe the Sensor's Temperature
+ *  - One to control the LEDs
+ *  - One to control the Buttons
+ *  - One for the commands
+ *  - One for the prints on the terminal
+ * 
+ * @return Doesn't return anything
+ */
+ 
 void main(void) {
-    /* Check device status */  
 
     /* Leds */
 	if (!device_is_ready(led0_dev.port))  
@@ -247,16 +246,14 @@ void main(void) {
     }
 
     /* I2C */
-
     if (!device_is_ready(dev_i2c.bus)) {
         printk("I2C bus %s is not ready!\n\r",dev_i2c.bus->name);
         return;
     }
     
-    
     /* Configure PINS */
+    
     /* Leds */
-
     ret = gpio_pin_configure_dt(&led0_dev, led0_dev.dt_flags | GPIO_OUTPUT_ACTIVE);
     if (ret < 0) {
         printk("Error %d: Failed to configure LED 0 \n\r", ret);
@@ -282,7 +279,6 @@ void main(void) {
     }
 
     /* Buttons */
-
     ret = gpio_pin_configure_dt(&but0_dev, GPIO_INPUT | GPIO_PULL_UP);
     if (ret < 0) {
         printk("Error %d: Failed to configure BUT 0 \n\r", ret);
@@ -308,7 +304,6 @@ void main(void) {
     }
 
     /* UART */
-
     ret = uart_callback_set(uart, uart_cb, NULL);
     if (ret) {
 		return;
@@ -327,7 +322,6 @@ void main(void) {
 	}
 
     /* I2C */
-
     ret = i2c_write_dt(&dev_i2c, config, sizeof(config));
     if (ret != 0) {
         printk("Failed to write to I2C device address %x at Reg. %x \n",dev_i2c.addr,config);
@@ -362,15 +356,19 @@ void main(void) {
 
 }
 
-/* ************************************************************ */
-/* Processes the chars received so far looking for commands     */
-/* Returns:                                                     */
-/*  	 0: if a valid command was found and executed           */
-/* 	-1: if empty string or incomplete command found             */
-/* 	-2: if an invalid command was found                         */
-/* 	-3: if a CS error is detected (command not executed)        */
-/* 	-4: if string format is wrong                               */
-/* ************************************************************ */
+/**
+ * @brief Command Processor 
+ *
+ * Processes the chars received so far looking for commands
+ * Types of commands accepted are :
+ * For leds -> #LXY! X(number of led), Y(state of led)
+ * For threads -> #TXYYYY! X(thread number) YYYY(number in ms with range [0; 9999]) 
+ * 
+ * @return  0 if a valid command was found and executed
+ * @return -1 if incomplete command found
+ * @return -2 if string is full or empty
+ * @return -4 if string format is wrong 
+ */
 
 int cmdProcessor(void) {
 
@@ -408,7 +406,7 @@ int cmdProcessor(void) {
             if((cmdString[i+4] != EOF_SYM) || ((i+4) > cmdStringLen)) { /*Detect EOF symbol*/
 				return WRONG_STR_FORMAT;	
 			}
-
+            /* Finds the correct led and saves the state the user inputted */
             switch(cmdString[i+2]) {
                 case('1'):
                     led0temp = (cmdString[i+3]-'0');
@@ -436,6 +434,8 @@ int cmdProcessor(void) {
 			if(cmdString[i+7] != EOF_SYM)  {/*Detect EOF symbol*/
 					return WRONG_STR_FORMAT;	
 			}
+            /* Finds the correct thread and calculates the user input in ms */
+            /* Thread temperature -> 1   thread button -> 2  thread led -> 3 */
             switch(cmdString[i+2]) {
                 case('1'):
                     thread_temperature_period = (cmdString[i+3] - '0') * 1000 + (cmdString[i+4] - '0') * 100 + (cmdString[i+5] - '0') * 10 + (cmdString[i+6] - '0') * 1;
@@ -464,12 +464,15 @@ int cmdProcessor(void) {
 	return WRONG_STR_FORMAT;
 }
 
-/* ******************************** */
-/* Adds a char to the cmd string 	*/
-/* Returns: 				        */
-/*  	 0: if success 		        */
-/* 		-1: if cmd string full 	    */
-/* ******************************** */
+/**
+ * @brief Add new command character
+ *
+ * Adds a char to the cmd string
+ * 
+ * @return  0 if the char was added with success
+ * @return -1 if the command string is full
+ */
+
 int newCmdChar(unsigned char newChar) {
 	/* If cmd string not full add char to it */
 	if (cmdStringLen < MAX_CMDSTRING_SIZE) {
@@ -481,7 +484,14 @@ int newCmdChar(unsigned char newChar) {
 	return STRING_FULL;
 }
 
-/* Resets the command string */  
+/**
+ * @brief Reset Command String
+ *
+ * Resets the command string and related values to their initial values
+ * 
+ * @return Doesn't return anything
+ */
+ 
 void resetCmdString(void) {
 	cmdStringLen = 0;
 	SOF_C = 0;
@@ -489,16 +499,31 @@ void resetCmdString(void) {
     strFull = 0;	
 }
 
+/**
+ * @brief UART callback function
+ *
+ * This function is a callback handler for UART events. It handles different
+ * events and, for each one, does the corresponding action 
+ *
+ * @param dev   Pointer to the UART device 
+ * @param evt   Pointer to the UART event
+ * @param user_data User-defined data
+ *
+ * @return  Doesn't return anything
+ */
+
 static void uart_cb(const struct device *dev, struct uart_event *evt, void *user_data) {
 	
     switch (evt->type) {
 
 	case UART_RX_RDY:
         if(evt->data.rx.len > 0){
+            /* if return is pressed enters condition and signals command was inputted via cmd variable */
             if(evt->data.rx.buf[evt->data.rx.offset] == '\r') {
                 cmd = 1;
                 break;
             }
+            /* saves the inputted char in the array */
             res = newCmdChar(evt->data.rx.buf[evt->data.rx.offset]);
             if(res != 0) {
                 strFull = 1;
@@ -515,7 +540,19 @@ static void uart_cb(const struct device *dev, struct uart_event *evt, void *user
     }
 }
 
-/* Thread temperature code implementation */
+/**
+ * @brief Thread to observe Sensor's Temperature
+ *
+ * This thread reads the temperature of the sensor through I2C and calculates the 
+ * temperature based on the value read from the sensor.
+ *
+ * @param argA  Pointer to the first argument
+ * @param argB  Pointer to the second argument
+ * @param argC  Pointer to the third argument
+ *
+ * @return  Doesn't return anything
+ */
+
 void thread_temperature_code(void *argA , void *argB, void *argC)
 {
     /* Local vars */
@@ -529,17 +566,17 @@ void thread_temperature_code(void *argA , void *argB, void *argC)
 
     /* Thread loop */
     while(1) {		
-		
+		/* update the thread peridiocity if condition is true*/
         if(update_temperature_period){
             release_time_temperature = k_uptime_get() + thread_temperature_period;
             update_temperature_period = 0;
         }
-
+        /* read the temperature */
 		ret = i2c_read_dt(&dev_i2c, &temp, sizeof(temp));
 		if(ret != 0){
 			printk("Failed to write/read I2C device address %x at Reg. %x \r\n", dev_i2c.addr,config);
 		}
-
+        /* temperatures above 128 (0x80) are negative*/
 		if(temp >= 128){
 			temp = 128 - temp;
 		}
@@ -557,7 +594,18 @@ void thread_temperature_code(void *argA , void *argB, void *argC)
     timing_stop();
 }
 
-/* Thread button code implementation */
+/**
+ * @brief Thread to control the buttons
+ *
+ * This thread reads the status of the buttons using GPIO pins
+ *
+ * @param argA  Pointer to the first argument
+ * @param argB  Pointer to the second argument
+ * @param argC  Pointer to the third argument
+ *
+ * @return  Doesn't return anything
+ */
+
 void thread_button_code(void *argA , void *argB, void *argC)
 {
     /* Local vars */
@@ -571,12 +619,12 @@ void thread_button_code(void *argA , void *argB, void *argC)
 
     /* Thread loop */
     while(1) {        
-       
+       /* update the thread peridiocity if condition is true*/
         if(update_button_period){
             release_time_button = k_uptime_get() + thread_button_period;
             update_button_period = 0;
         }
-
+        /* get state of each button */
         But0 = gpio_pin_get_dt(&but0_dev);
         But1 = gpio_pin_get_dt(&but1_dev);
         But2 = gpio_pin_get_dt(&but2_dev);
@@ -593,7 +641,18 @@ void thread_button_code(void *argA , void *argB, void *argC)
     timing_stop();
 }
 
-/* Thread led code implementation */
+/**
+ * @brief Thread to control the LEDs
+ *
+ * This thread reads the status of the LEDs using GPIO pins
+ *
+ * @param argA  Pointer to the first argument
+ * @param argB  Pointer to the second argument
+ * @param argC  Pointer to the third argument
+ *
+ * @return  Doesn't return anything
+ */
+
 void thread_led_code(void *argA , void *argB, void *argC)
 {
     /* Local vars */
@@ -607,11 +666,12 @@ void thread_led_code(void *argA , void *argB, void *argC)
 
     /* Thread loop */
     while(1) {     
-
+        /* update the thread peridiocity if condition is true*/
         if(update_led_period){
             release_time_led = k_uptime_get() + thread_led_period;
             update_led_period = 0;
         }
+        /* update variable to send to each led from the temporary ones */
         led0stat = led0temp;
         led1stat = led1temp;
         led2stat = led2temp;
@@ -633,7 +693,19 @@ void thread_led_code(void *argA , void *argB, void *argC)
     timing_stop();
 }
 
-/* Thread cmd code implementation */
+/**
+ * @brief Thread to process the commands
+ *
+ * This thread processes commands and executes certain actions 
+ * based on the command
+ *
+ * @param argA  Pointer to the first argument
+ * @param argB  Pointer to the second argument
+ * @param argC  Pointer to the third argument
+ *
+ * @return  Doesn't return anything
+ */
+
 void thread_cmd_code(void *argA , void *argB, void *argC)
 {
     /* Local vars */
@@ -666,7 +738,19 @@ void thread_cmd_code(void *argA , void *argB, void *argC)
     timing_stop();
 }
 
-/* Thread print code implementation */
+/**
+ * @brief Thread to print information 
+ *
+ * This thread prints information about the status of the GPIO Pins (LEDs and Buttons),
+ * the value of temperature of the sensor and also the current command string
+ *
+ * @param argA  Pointer to the first argument
+ * @param argB  Pointer to the second argument
+ * @param argC  Pointer to the third argument
+ *
+ * @return  Doesn't return anything
+ */
+
 void thread_print_code(void *argA , void *argB, void *argC)
 {
     /* Local vars */
@@ -682,10 +766,11 @@ void thread_print_code(void *argA , void *argB, void *argC)
     while(1) {    
         printk("\033[2J\033[H");  
        /* Print menu */       
-	    printk("#######     Menu     #######\n\n\r   Button state (0-ON  1-OFF):\n\r   Button 1 : %d   Button 2 : %d   Button 3 : %d   Button 4 : %d\n\n\r",But0,But1,But2,But3);
+	    printk("#######     Menu     #######\n\n\r   Button state (1-ON  0-OFF):\n\r   Button 1 : %d   Button 2 : %d   Button 3 : %d   Button 4 : %d\n\n\r",But0,But1,But2,But3);
 	    printk("   Led state(1-ON  0-OFF):\n\r   Led 1 : %d   Led 2 : %d   Led 3 : %d   Led 4 : %d\n\n\r",led0stat,led1stat,led2stat,led3stat);
 		printk("   Temperature : %d C\n\r",temp);
         printk("   Command : ");
+        /* prints the typed char */
         for(int i = 0; i < cmdStringLen; i++) {
             printk("%c",cmdString[i]);
         }
